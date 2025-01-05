@@ -1,101 +1,115 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
+import questionsDataRaw from '../../config/questions.json'
+interface Question {
+  uuid: number
+  question: string
+  options?: string[]
+  type: 'select' | 'text'
+  name: string
+}
+
+interface QuestionsData {
+  es: Question[]
+  en: Question[]
+}
+
+const typedQuestionsData: QuestionsData = {
+  es: questionsDataRaw.es.map((q) => ({
+    ...q,
+    type: q.type as 'select' | 'text',
+  })),
+  en: questionsDataRaw.en.map((q) => ({
+    ...q,
+    type: q.type as 'select' | 'text',
+  })),
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const { t, i18n } = useTranslation()
+  const [randomQuestions, setRandomQuestions] = useState<Question[]>([])
+  const [formData, setFormData] = useState<Record<string, string>>({})
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('en')
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  useEffect(() => {
+    const browserLanguage = navigator.language.startsWith('es') ? 'es' : 'en'
+    setSelectedLanguage(browserLanguage)
+    const questions =
+      typedQuestionsData[browserLanguage as keyof QuestionsData] ||
+      typedQuestionsData['es']
+    const shuffled: Question[] = [...questions]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 5)
+    setRandomQuestions(shuffled)
+  }, [])
+
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleLanguageChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const newLanguage = e.target.value
+    setSelectedLanguage(newLanguage)
+    i18n.changeLanguage(newLanguage)
+    const questions =
+      typedQuestionsData[newLanguage as keyof QuestionsData] ||
+      typedQuestionsData['en']
+    const shuffled: Question[] = [...questions]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 5)
+    setRandomQuestions(shuffled)
+  }
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const response = await fetch('https://mi-api-fastapi.com/submit-symptom/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    })
+    const data = await response.json()
+    alert(data.message)
+  }
+
+  return (
+    <div className="container">
+      <h1>{t('title')}</h1>
+      <p>{t('description')}</p>
+
+      <label>🌍 {t('language')}</label>
+      <select value={selectedLanguage} onChange={handleLanguageChange}>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+      </select>
+
+      <form onSubmit={handleSubmit}>
+        {randomQuestions.map((pregunta) => (
+          <div key={pregunta.uuid}>
+            <label>{pregunta.question}</label>
+            {pregunta.type === 'text' ? (
+              <input
+                type="text"
+                name={pregunta.name}
+                onChange={handleChange}
+                required
+              />
+            ) : (
+              <select name={pregunta.name} onChange={handleChange} required>
+                {pregunta.options?.map((option, index) => (
+                  <option key={index} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        ))}
+        <button type="submit">Enviar</button>
+      </form>
     </div>
-  );
+  )
 }
