@@ -50,3 +50,6 @@ next-env.d.ts
 supabase.json
 firebase.json
 config.json
+
+# Ignore questions.json
+/config/questions.json
