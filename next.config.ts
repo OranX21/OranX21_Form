@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
     locales: ['en', 'es'],
     defaultLocale: 'es',
   },
+  env: {
+    API_URL: process.env.API_URL,
+  },
 }
 
 export default nextConfig
