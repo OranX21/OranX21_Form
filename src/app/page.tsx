@@ -10,6 +10,7 @@ interface Question {
   options?: string[]
   type: 'select' | 'text'
   name: string
+  parent?: string
 }
 
 interface QuestionsData {
@@ -30,9 +31,9 @@ const typedQuestionsData: QuestionsData = {
 
 export default function Home() {
   const { t, i18n } = useTranslation()
-  const [randomQuestions, setRandomQuestions] = useState<Question[]>([])
-  const [formData, setFormData] = useState<Record<string, string>>({})
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en')
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [formData, setFormData] = useState<Record<string, string>>({})
   const [isFormValid, setIsFormValid] = useState<boolean>(false)
   const [invalidFields, setInvalidFields] = useState<string[]>([])
 
@@ -41,17 +42,14 @@ export default function Home() {
   }, [selectedLanguage])
 
   const loadQuestions = (language: string) => {
-    const questions =
+    const fullQuestions =
       typedQuestionsData[language as keyof QuestionsData] ||
       typedQuestionsData['en']
-    const shuffled: Question[] = [...questions]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 5)
-    setRandomQuestions(shuffled)
-
-    const initialFormData: Record<string, string> = {}
-    shuffled.forEach((q) => (initialFormData[q.name] = ''))
-    setFormData(initialFormData)
+    const mainQuestion = fullQuestions.find((q) => !q.parent)
+    if (mainQuestion) {
+      setQuestions([mainQuestion])
+      setFormData({ [mainQuestion.name]: '' })
+    }
     setIsFormValid(false)
     setInvalidFields([])
   }
@@ -59,9 +57,51 @@ export default function Home() {
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const newFormData = { ...formData, [e.target.name]: e.target.value }
+    const { name, value } = e.target
+    const newFormData = { ...formData, [name]: value }
     setFormData(newFormData)
+
+    if (name === 'reported_symptoms') {
+      updateFollowUpQuestions()
+    }
     validateForm(newFormData)
+  }
+
+  const updateFollowUpQuestions = () => {
+    const language = selectedLanguage as keyof QuestionsData
+    const fullQuestions = typedQuestionsData[language]
+
+    // Obtener la pregunta principal
+    const mainQuestion = fullQuestions.find(
+      (q) => q.name === 'reported_symptoms'
+    )
+
+    // Filtrar todas las preguntas de seguimiento
+    const followUpQuestions = fullQuestions.filter(
+      (q) => q.parent === 'reported_symptoms'
+    )
+
+    // Actualizar el estado de las preguntas para incluir la principal + las secundarias
+    if (mainQuestion) {
+      setQuestions([mainQuestion, ...followUpQuestions])
+    }
+
+    // Limpiar respuestas previas de preguntas secundarias
+    setFormData((prev) => {
+      const newFormData = { ...prev }
+      followUpQuestions.forEach((q) => {
+        newFormData[q.name] = ''
+      })
+      return newFormData
+    })
+  }
+
+  const validateForm = (data: Record<string, string>) => {
+    const emptyFields = questions
+      .filter((q) => !data[q.name] || data[q.name].trim() === '')
+      .map((q) => q.name)
+    setInvalidFields(emptyFields)
+    setIsFormValid(emptyFields.length === 0)
   }
 
   const handleLanguageChange = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -71,44 +111,20 @@ export default function Home() {
     loadQuestions(newLanguage)
   }
 
-  const validateForm = (data: Record<string, string>) => {
-    const emptyFields = randomQuestions
-      .filter((q) => !data[q.name] || data[q.name].trim() === '')
-      .map((q) => q.name)
-
-    setInvalidFields(emptyFields)
-    setIsFormValid(emptyFields.length === 0)
-  }
-
-  const scrollToFirstInvalidField = () => {
-    if (invalidFields.length > 0) {
-      const firstInvalidField = document.querySelector(
-        `[name="${invalidFields[0]}"]`
-      )
-      if (firstInvalidField) {
-        firstInvalidField.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        })
-        ;(firstInvalidField as HTMLElement).focus()
-      }
-    }
-  }
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     validateForm(formData)
 
-    if (!isFormValid) {
-      scrollToFirstInvalidField()
-      return
-    }
+    if (!isFormValid) return
 
-    const response = await fetch('https://mi-api-fastapi.com/submit-symptom/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
-    })
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/submit-symptom/`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      }
+    )
 
     const data = await response.json()
     alert(data.message)
@@ -122,7 +138,7 @@ export default function Home() {
         </h1>
         <p className="text-lg text-gray-600 mb-8 text-center">
           {t(
-            'Tu experiencia puede ayudar a comprender mejor los síntomas más frecuentes. Participa en este breve cuestionario anónimo y contribuye a un estudio sobre la salud y el bienestar. ¡Solo toma 2 minutos!'
+            'Tu experiencia puede ayudar a comprender mejor los síntomas más frecuentes. ¡Solo toma 2 minutos!'
           )}
         </p>
 
@@ -131,7 +147,7 @@ export default function Home() {
           <select
             value={selectedLanguage}
             onChange={handleLanguageChange}
-            className="bg-gray-100 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent"
+            className="bg-gray-100 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg"
           >
             <option value="en">English</option>
             <option value="es">Español</option>
@@ -139,11 +155,11 @@ export default function Home() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {randomQuestions.map((pregunta, index) => (
+          {questions.map((question, index) => (
             <div
-              key={pregunta.uuid}
-              className={`bg-gray-50 p-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 ${
-                invalidFields.includes(pregunta.name)
+              key={question.uuid}
+              className={`bg-gray-50 p-6 rounded-lg shadow-md ${
+                invalidFields.includes(question.name)
                   ? 'border-2 border-red-500'
                   : ''
               }`}
@@ -152,31 +168,27 @@ export default function Home() {
                 Pregunta {index + 1}
               </h2>
               <label className="block text-gray-700 text-lg mb-2">
-                {pregunta.question}
+                {question.question}
               </label>
-              {pregunta.type === 'text' ? (
+              {question.type === 'text' ? (
                 <input
                   type="text"
-                  name={pregunta.name}
+                  name={question.name}
                   onChange={handleChange}
-                  value={formData[pregunta.name] || ''}
+                  value={formData[question.name] || ''}
                   required
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300"
                 />
               ) : (
                 <select
-                  name={pregunta.name}
+                  name={question.name}
                   onChange={handleChange}
-                  value={formData[pregunta.name] || ''}
+                  value={formData[question.name] || ''}
                   required
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300"
                 >
-                  <option value="">
-                    {selectedLanguage === 'es'
-                      ? 'Selecciona una opción...'
-                      : 'Select an option...'}
-                  </option>
-                  {pregunta.options?.map((option, index) => (
+                  <option value="">Selecciona una opción...</option>
+                  {question.options?.map((option, index) => (
                     <option key={index} value={option}>
                       {option}
                     </option>
@@ -185,17 +197,13 @@ export default function Home() {
               )}
             </div>
           ))}
-          <div className="flex flex-row justify-center">
-            <button
-              type="submit"
-              disabled={!isFormValid}
-              className={`bg-orange-600 text-white font-bold py-3 px-8 rounded-full hover:bg-orange-700 transition duration-300 ease-in-out transform hover:scale-105 ${
-                !isFormValid ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              Enviar
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={!isFormValid}
+            className="bg-orange-600 text-white font-bold py-3 px-8 rounded-full hover:bg-orange-700"
+          >
+            Enviar
+          </button>
         </form>
       </div>
     </div>
