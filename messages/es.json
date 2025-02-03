@@ -4,6 +4,13 @@
     "about": "Spanish"
   },
   "LocaleSwitcher": {
-    "label": "Cambia el lenguage"
+    "label": "Cambia el lenguage",
+    "locale": "{locale, select, en {Inglés} es {Español} other {Desconocido}}"
+  },
+  "Survey": {
+    "Survey Form": "Formulario de Encuesta",
+    "Language": "Idioma",
+    "Select an option": "Selecciona una opción",
+    "Submit": "Enviar"
   }
 }

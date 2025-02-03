@@ -5,6 +5,12 @@
   },
   "LocaleSwitcher": {
     "label": "Change language",
-    "locale": "{locale, select, de {  🇪🇸 Español } en {🇺🇸 English} other {Unknown} }"
+    "locale": "{locale, select, en {English} es {Spanish} other {Unknown}}"
+  },
+  "Survey": {
+    "Survey Form": "Survey Form",
+    "Language": "Language",
+    "Select an option": "Select an option",
+    "Submit": "Submit"
   }
 }
