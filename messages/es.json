@@ -1,0 +1,9 @@
+{
+  "HomePage": {
+    "title": "Bienvenido ES",
+    "about": "Spanish"
+  },
+  "LocaleSwitcher": {
+    "label": "Cambia el lenguage"
+  }
+}
