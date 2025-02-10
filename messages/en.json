@@ -1,7 +1,8 @@
 {
   "HomePage": {
-    "title": "Welcome EN",
-    "about": "English"
+    "title": "Real Data About Common Symptoms",
+    "description": "Your experience can help better understand common symptoms. It only takes 2 minutes!",
+    "submit": "Submit"
   },
   "LocaleSwitcher": {
     "label": "Change language",

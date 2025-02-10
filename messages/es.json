@@ -1,7 +1,8 @@
 {
   "HomePage": {
-    "title": "Bienvenido ES",
-    "about": "Spanish"
+    "title": "Datos Reales Sobre Síntomas Comunes",
+    "description": "Tu experiencia puede ayudar a comprender mejor los síntomas más frecuentes. ¡Solo toma 2 minutos!",
+    "submit": "Enviar"
   },
   "LocaleSwitcher": {
     "label": "Cambia el lenguage",

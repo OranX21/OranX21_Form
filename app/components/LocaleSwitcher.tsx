@@ -1,9 +1,9 @@
 'use client'
 
 import { useDispatch, useSelector } from 'react-redux'
-import { setLanguage } from '../../slices/languageSlice'
-import { RootState } from '../../lib/store'
 import { routing } from '../../i18n/routing'
+import { RootState } from '../../lib/store'
+import { setLanguage } from '../../slices/languageSlice'
 
 export default function LocaleSwitcher() {
   const dispatch = useDispatch()
